@@ -13,8 +13,10 @@ class DHT:
                 self.data_store[key_hash].append(value)
             else:
                 self.data_store[key_hash] = [value]
+            print(self.data_store)
         else:
             self.node.forward_request(self.node.successor, "/insert", {"key": key, "value": value})
+        print("exiting insert")
 
     def query(self, key):
         key_hash = self.node.hash_id(key)

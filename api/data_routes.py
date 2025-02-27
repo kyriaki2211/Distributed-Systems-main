@@ -18,8 +18,8 @@ def insert():
     print("Received data:", request.json)  # Debugging
     data = request.json
     try:
-        dht.insert(data["key"], data["value"])
-        return jsonify({"status": "success"}), 200
+        result = dht.insert(data["key"], data["value"])
+        return jsonify(result), 200
     except KeyError as e:
         print(f"KeyError: Missing {e}")
         return jsonify({"status": "error", "message": f"Missing key: {e}"}), 400

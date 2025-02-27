@@ -106,7 +106,7 @@ class ChordNode:
         while True:
             client_socket, addr = server.accept()
             threading.Thread(target=self.handle_connection, args=(client_socket, addr), daemon=True).start()
-
+    
     def handle_connection(self, client_socket, addr):
         data = client_socket.recv(1024).decode()
         request = json.loads(data)
@@ -114,8 +114,10 @@ class ChordNode:
         print(f"Received socket request on {endpoint} from {addr}")
         
         if endpoint == "/insert":
-            self.insert(payload["key"], payload["value"])
-            client_socket.sendall(json.dumps({"status": "success"}).encode())
+            print(f"Processing insert for key={payload['key']}, value={payload['value']}")
+            result = self.insert(payload["key"], payload["value"])
+            client_socket.sendall(json.dumps(result).encode())
+        # Rest of the handler...
         elif endpoint == "/query":
             response = self.query(payload["key"])
             client_socket.sendall(json.dumps({"values": response}).encode())
@@ -192,7 +194,7 @@ class ChordNode:
         else:
             print(f"Forwarding to successor {self.successor}")
             response = self.send_request(self.successor, "/insert", {"key": key, "value": value})
-            print(f"Forward response: {response}")'''
+            print(f"Forward response: {response}")
     def insert(self, key, value):
         key_hash = self.hash_id(key)
         print(f"Inserting {key} (hash {key_hash}) -> {value} at {self.ip}:{self.port}, responsible: {self.is_responsible(key_hash)}")
@@ -206,9 +208,25 @@ class ChordNode:
             print(f"Forwarding to successor {self.successor} via socket port {self.successor[1] + 1}")
             # Note: self.successor is stored as (ip, flask_port), so we add 1 to target its socket listener.
             response = self.send_request((self.successor[0], self.successor[1] + 1), "/insert", {"key": key, "value": value})
+            print(f"Forward response: {response}")'''
+
+    def insert(self, key, value):
+        key_hash = self.hash_id(key)
+        print(f"Inserting {key} (hash {key_hash}) -> {value} at {self.ip}:{self.port}, responsible: {self.is_responsible(key_hash)}")
+        if self.is_responsible(key_hash):
+            if key_hash in self.data_store:
+                self.data_store[key_hash].append(value)
+            else:
+                self.data_store[key_hash] = [value]
+            print(f"Stored in data_store: {self.data_store}")
+            return {"status": "success"}  # Add a return value
+        else:
+            print(f"Forwarding to successor {self.successor} via socket port {self.successor[1] + 1}")
+            # Use successor[1] + 1 consistently to target the socket listener
+            response = self.send_request((self.successor[0], self.successor[1] + 1), "/insert", {"key": key, "value": value})
             print(f"Forward response: {response}")
-
-
+            return response  # Return the forwarded response
+    
     def query(self, key):
         key_hash = self.hash_id(key)
         print(f"Querying {key} (hash {key_hash}) at {self.ip}:{self.port}, responsible: {self.is_responsible(key_hash)}")
@@ -230,27 +248,40 @@ class ChordNode:
             self.send_request(self.successor, "/delete", {"key": key})
 
     def is_responsible(self, key_hash):
-        if self.predecessor is None:
-            return True  # Single node case
+        print(f"Checking responsibility for key_hash {key_hash}")
+        # For bootstrap node or single node
+        if self.predecessor == (self.ip, self.port):
+            print("I am responsible (bootstrap/single node)")
+            return True
+        
+        # Calculate IDs for comparison
         pred_id = self.hash_id(f"{self.predecessor[0]}:{self.predecessor[1]}")
-        return pred_id < key_hash <= self.node_id
+        my_id = self.node_id
+        print(f"pred_id: {pred_id}, my_id: {my_id}, key_hash: {key_hash}")
+        
+        # Normal case
+        if pred_id < my_id:
+            result = pred_id < key_hash <= my_id
+        # Wraparound case
+        else:
+            result = key_hash > pred_id or key_hash <= my_id
+        
+        print(f"Responsibility result: {result}")
+        return result
 
     def forward_request(self, node, endpoint, data):
         return self.send_request(node, endpoint, data)
 
     def send_request(self, node, endpoint, data):
         ip, port = node
-        #print(f"Sending {endpoint} to {ip}:{port + 1} with data {data}")
         print(f"Sending {endpoint} to {ip}:{port} with data {data}")
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                #s.connect((ip, self.socket_port))  # Σύνδεση στο socket port του κόμβου
                 s.connect((ip, port))
                 s.sendall(json.dumps({"endpoint": endpoint, "data": data}).encode())
                 response = s.recv(1024)
                 return json.loads(response.decode())
         except Exception as e:
-            #print(f"Failed to send request to {ip}:{port + 1} -> {e}")
             print(f"Failed to send request to {ip}:{port} -> {e}")
             return {"status": "error", "message": str(e)}
 
