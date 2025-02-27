@@ -5,12 +5,23 @@ SERVER_URL = "http://127.0.0.1:5000"
 
 def insert_song(title, location):
     """Εισάγει ένα τραγούδι στο DHT"""
-    response = requests.post(f"{SERVER_URL}/insert", json={"key": title, "value": location})
     try:
-        print("Server response:", response.json())  # Debugging
-        print(response.json()["status"])  # Χρησιμοποιεί "status" όπως συμφωνήσαμε
+        response = requests.post(f"{SERVER_URL}/insert", json={"key": title, "value": location})
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        
+        response_data = response.json()
+        if "status" in response_data:
+            print(f"Status: {response_data['status']}")
+            if "message" in response_data:
+                print(f"Message: {response_data['message']}")
+        else:
+            print("Unexpected response format:", response_data)
     except requests.exceptions.JSONDecodeError:
         print("Error: Invalid JSON response from server")
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
+
+
 def delete_song(title):
     """Διαγράφει ένα τραγούδι από το DHT"""
     response = requests.delete(f"{SERVER_URL}/delete/{title}")

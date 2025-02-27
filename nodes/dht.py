@@ -9,14 +9,16 @@ class DHT:
     def insert(self, key, value):
         key_hash = self.node.hash_id(key)
         if self.node.is_responsible(key_hash):
-            if key_hash in self.data_store:
+            if key_hash in self.data_store and value not in self.data_store[key_hash]:
                 self.data_store[key_hash].append(value)
             else:
                 self.data_store[key_hash] = [value]
             print(self.data_store)
+            return {"status": "success", "message": "Data inserted successfully"}
         else:
-            self.node.forward_request(self.node.successor, "/insert", {"key": key, "value": value})
-        print("exiting insert")
+            result = self.node.forward_request(self.node.successor, "/insert", {"key": key, "value": value})
+            return result
+
 
     def query(self, key):
         key_hash = self.node.hash_id(key)

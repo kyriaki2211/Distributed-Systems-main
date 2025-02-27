@@ -13,12 +13,15 @@ def insert():
     return jsonify({"status": "success"}), 200
 '''
 
+# In data_routes.py
 @data_routes.route("/insert", methods=["POST"])
 def insert():
     print("Received data:", request.json)  # Debugging
     data = request.json
     try:
         result = dht.insert(data["key"], data["value"])
+        if not result:  # Handle case where result is None
+            result = {"status": "success", "message": "Operation completed"}
         return jsonify(result), 200
     except KeyError as e:
         print(f"KeyError: Missing {e}")

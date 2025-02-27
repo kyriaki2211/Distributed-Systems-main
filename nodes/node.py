@@ -210,16 +210,24 @@ class ChordNode:
             response = self.send_request((self.successor[0], self.successor[1] + 1), "/insert", {"key": key, "value": value})
             print(f"Forward response: {response}")'''
 
+    # In node.py
     def insert(self, key, value):
         key_hash = self.hash_id(key)
         print(f"Inserting {key} (hash {key_hash}) -> {value} at {self.ip}:{self.port}, responsible: {self.is_responsible(key_hash)}")
-        if self.is_responsible(key_hash):
-            if key_hash in self.data_store:
+        '''if self.is_responsible(key_hash):
+            if key_hash in self.data_store and value not in self.data_store[key_hash]:
                 self.data_store[key_hash].append(value)
             else:
+                self.data_store[key_hash] = [value]'''
+        if key_hash in self.data_store:
+            print(key_hash, self.data_store, value)
+            if value not in self.data_store[key_hash]:
+                    self.data_store[key_hash].append(value)
+            else:
                 self.data_store[key_hash] = [value]
+
             print(f"Stored in data_store: {self.data_store}")
-            return {"status": "success"}  # Add a return value
+            return {"status": "success", "message": "Data stored successfully"}
         else:
             print(f"Forwarding to successor {self.successor} via socket port {self.successor[1] + 1}")
             # Use successor[1] + 1 consistently to target the socket listener
