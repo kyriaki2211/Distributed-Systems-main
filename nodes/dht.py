@@ -16,9 +16,12 @@ class DHT:
             print(self.data_store)
             return {"status": "success", "message": "Data inserted successfully"}
         else:
-            result = self.node.forward_request(self.node.successor, "/insert", {"key": key, "value": value})
+            temp = list(self.node.successor)  # Convert tuple to list
+            temp[1] += 1  # Modify the second element
+            #self.node.successor = tuple(temp)  # Convert back to tuple if needed
+            temp2 =  tuple(temp)
+            result = self.node.forward_request(temp2, "/insert", {"key": key, "value": value})
             return result
-
 
     def query(self, key):
         key_hash = self.node.hash_id(key)

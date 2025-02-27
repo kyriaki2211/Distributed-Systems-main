@@ -182,59 +182,25 @@ class ChordNode:
             return self.successor
         return self.successor  # Απλοποιημένο, χρειάζεται προώθηση με sockets!
 
-    '''def insert(self, key, value):
-        key_hash = self.hash_id(key)
-        print(f"Inserting {key} (hash {key_hash}) -> {value} at {self.ip}:{self.port}, responsible: {self.is_responsible(key_hash)}")
-        if self.is_responsible(key_hash):
-            if key_hash in self.data_store:
-                self.data_store[key_hash].append(value)
-            else:
-                self.data_store[key_hash] = [value]
-            print(f"Stored in data_store: {self.data_store}")
-        else:
-            print(f"Forwarding to successor {self.successor}")
-            response = self.send_request(self.successor, "/insert", {"key": key, "value": value})
-            print(f"Forward response: {response}")
     def insert(self, key, value):
         key_hash = self.hash_id(key)
-        print(f"Inserting {key} (hash {key_hash}) -> {value} at {self.ip}:{self.port}, responsible: {self.is_responsible(key_hash)}")
         if self.is_responsible(key_hash):
-            if key_hash in self.data_store:
-                self.data_store[key_hash].append(value)
-            else:
-                self.data_store[key_hash] = [value]
-            print(f"Stored in data_store: {self.data_store}")
-        else:
-            print(f"Forwarding to successor {self.successor} via socket port {self.successor[1] + 1}")
-            # Note: self.successor is stored as (ip, flask_port), so we add 1 to target its socket listener.
-            response = self.send_request((self.successor[0], self.successor[1] + 1), "/insert", {"key": key, "value": value})
-            print(f"Forward response: {response}")'''
-
-    # In node.py
-    def insert(self, key, value):
-        key_hash = self.hash_id(key)
-        print(f"Inserting {key} (hash {key_hash}) -> {value} at {self.ip}:{self.port}, responsible: {self.is_responsible(key_hash)}")
-        '''if self.is_responsible(key_hash):
             if key_hash in self.data_store and value not in self.data_store[key_hash]:
                 self.data_store[key_hash].append(value)
             else:
-                self.data_store[key_hash] = [value]'''
-        if key_hash in self.data_store:
-            print(key_hash, self.data_store, value)
-            if value not in self.data_store[key_hash]:
-                    self.data_store[key_hash].append(value)
-            else:
                 self.data_store[key_hash] = [value]
-
-            print(f"Stored in data_store: {self.data_store}")
-            return {"status": "success", "message": "Data stored successfully"}
+            print(self.data_store)
+            return {"status": "success", "message": "Data inserted successfully"}
         else:
-            print(f"Forwarding to successor {self.successor} via socket port {self.successor[1] + 1}")
-            # Use successor[1] + 1 consistently to target the socket listener
-            response = self.send_request((self.successor[0], self.successor[1] + 1), "/insert", {"key": key, "value": value})
-            print(f"Forward response: {response}")
-            return response  # Return the forwarded response
-    
+            temp = list(self.successor)  # Convert tuple to list
+            temp[1] += 1  # Modify the second element
+            #self.node.successor = tuple(temp)  # Convert back to tuple if needed
+            temp2 =  tuple(temp)
+            result = self.forward_request(temp2, "/insert", {"key": key, "value": value})
+            return result
+
+
+        
     def query(self, key):
         key_hash = self.hash_id(key)
         print(f"Querying {key} (hash {key_hash}) at {self.ip}:{self.port}, responsible: {self.is_responsible(key_hash)}")
